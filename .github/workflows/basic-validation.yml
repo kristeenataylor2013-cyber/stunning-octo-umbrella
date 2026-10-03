@@ -11,10 +11,10 @@ on:
   workflow_call:
     inputs:
       operating-systems:
-        description: "Optional input to set a list of operating systems which the workflow uses. Defaults to ['ubuntu-latest', 'windows-latest', 'macos-latest'] if not set"
+        description: 'Optional input to set a JSON array of operating systems. Defaults to ["ubuntu-latest", "windows-latest", "macos-latest"] if not set'
         required: false
         type: string
-        default: "['ubuntu-latest', 'windows-latest', 'macos-latest']"
+        default: '["ubuntu-latest", "windows-latest", "macos-latest"]'
       enable-audit:
         description: "Optional input to enable npm package audit process"
         required: false
