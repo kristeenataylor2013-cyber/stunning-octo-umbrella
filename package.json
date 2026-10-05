@@ -1,0 +1,18 @@
+{
+  "name": "stunning-octo-umbrella",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "format-check": "prettier --check package.json package-lock.json src test scripts .github/workflows/ci.yml README.md",
+    "lint": "node --check src/index.js && node --check test/index.test.js && node --check scripts/build.js",
+    "build": "node scripts/build.js",
+    "test": "node --test"
+  },
+  "devDependencies": {
+    "prettier": "3.8.1"
+  }
+}
