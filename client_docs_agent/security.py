@@ -6,12 +6,16 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 
+def _port(p):
+    return p.port or {"http": 80, "https": 443}.get(p.scheme)
+
+
 def is_allowed_url(url: str, base_url: str) -> bool:
-    """Only same-origin https (or the base's scheme) URLs are allowed."""
+    """Only URLs with the same scheme, host and port as the base are allowed."""
     u, b = urlparse(url), urlparse(base_url)
     if u.scheme not in ("http", "https") or u.scheme != b.scheme:
         return False
-    return (u.hostname or "").lower() == (b.hostname or "").lower() and u.port == b.port
+    return (u.hostname or "").lower() == (b.hostname or "").lower() and _port(u) == _port(b)
 
 
 def sanitize_filename(name: str, default: str = "file") -> str:

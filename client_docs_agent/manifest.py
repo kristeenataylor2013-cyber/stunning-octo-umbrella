@@ -15,7 +15,10 @@ class Manifest:
         self.path = path
         self.entries: dict[str, dict] = {}
         if path.exists():
-            self.entries = json.loads(path.read_text())
+            try:
+                self.entries = json.loads(path.read_text())
+            except json.JSONDecodeError:
+                path.rename(path.with_suffix(".corrupt"))
 
     def has(self, source_url: str) -> bool:
         e = self.entries.get(source_url)

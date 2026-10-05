@@ -45,3 +45,9 @@ def test_manifest(tmp_path):
     assert Manifest(tmp_path / "m.json").has("u")
     f.unlink()
     assert not Manifest(tmp_path / "m.json").has("u")
+
+
+def test_default_port():
+    assert is_allowed_url("https://portal.example.com:443/a", BASE)
+    assert is_allowed_url("https://PORTAL.example.com/a", BASE)
+    assert not is_allowed_url("https://portal.example.com:8443/a", BASE)

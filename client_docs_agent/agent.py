@@ -1,5 +1,6 @@
 """Playwright agent: login, walk the client list, download each document."""
 import logging
+from email.message import Message
 import os
 import time
 from pathlib import Path
@@ -35,8 +36,12 @@ def _guard(page, cfg: Config):
 
 
 def _save_state(context, path: Path) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    context.storage_state(path=str(path))
+    ensure_private_dir(path.parent)
+    old = os.umask(0o077)
+    try:
+        context.storage_state(path=str(path))
+    finally:
+        os.umask(old)
     os.chmod(path, 0o600)
 
 
@@ -68,6 +73,7 @@ def run(cfg: Config) -> int:
         _guard(page, cfg)
 
         page.goto(cfg.base_url + cfg.clients_path)
+        page.wait_for_load_state("networkidle")
         if cfg.sel_password and page.locator(cfg.sel_password).count():
             if not (cfg.username and cfg.password):
                 raise SystemExit("Not logged in and no credentials; run login-interactive")
@@ -81,12 +87,14 @@ def run(cfg: Config) -> int:
 
         # Discovery: collect all client pages
         clients: list[tuple[str, str]] = []
-        while True:
+        seen_pages: set[str] = set()
+        while page.url not in seen_pages and len(seen_pages) < 1000:
+            seen_pages.add(page.url)
             for a in page.locator(cfg.sel_client_link).all():
                 href = a.get_attribute("href")
                 if href:
                     url = urljoin(page.url, href)
-                    if is_allowed_url(url, cfg.base_url):
+                    if is_allowed_url(url, cfg.base_url) and url not in {c[1] for c in clients}:
                         clients.append((a.inner_text().strip() or url, url))
             nxt = page.locator(cfg.sel_next_page)
             if not nxt.count():
@@ -94,6 +102,8 @@ def run(cfg: Config) -> int:
             nxt.first.click()
             page.wait_for_load_state("networkidle")
             time.sleep(cfg.delay)
+        if not clients:
+            raise SystemExit("No clients found: check login/session and selectors")
         log.info("found %d clients", len(clients))
 
         for idx, (name, url) in enumerate(clients, 1):
@@ -110,8 +120,9 @@ def run(cfg: Config) -> int:
                     if not resp.ok:
                         raise RuntimeError(f"status {resp.status}")
                     disp = resp.headers.get("content-disposition", "")
-                    fname = disp.split("filename=")[-1].strip('" ') if "filename=" in disp \
-                        else doc_url.split("?")[0].rsplit("/", 1)[-1]
+                    msg = Message()
+                    msg["content-disposition"] = disp
+                    fname = msg.get_filename() or doc_url.split("?")[0].rstrip("/").rsplit("/", 1)[-1]
                     return fname, resp.body()
 
                 try:
@@ -123,8 +134,8 @@ def run(cfg: Config) -> int:
                 dest = safe_join(dest_dir, fname)
                 n = 1
                 while dest.exists():
-                    stem, dot, ext = sanitize_filename(fname).rpartition(".")
-                    dest = safe_join(dest_dir, f"{stem or ext}_{n}{dot}{ext if stem else ''}")
+                    orig = Path(sanitize_filename(fname))
+                    dest = safe_join(dest_dir, f"{orig.stem}_{n}{orig.suffix}")
                     n += 1
                 fd = os.open(dest, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
                 with os.fdopen(fd, "wb") as f:
