@@ -103,3 +103,35 @@ func TestCleanFlagSafety(t *testing.T) {
 		})
 	}
 }
+
+func TestChangelogDefaultsUseEndingRef(t *testing.T) {
+	r := testRepo(t)
+	for _, args := range [][]string{
+		{"tag", "v1"},
+		{"commit", "--allow-empty", "-m", "fix: older release"},
+		{"branch", "older"},
+		{"commit", "--allow-empty", "-m", "feat: newer release"},
+		{"tag", "v2"},
+	} {
+		if _, err := r.Run(args...); err != nil {
+			t.Fatal(err)
+		}
+	}
+	cmd, out, _ := newCmdWithBuffers()
+	if err := runChangelog(cmd, r, "", "older", ""); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(out.String(), "older release") || strings.Contains(out.String(), "newer release") || strings.Contains(out.String(), "initial commit") {
+		t.Fatalf("incorrect ending-ref range: %s", out.String())
+	}
+	if _, err := r.Run("tag", "-d", "v1"); err != nil {
+		t.Fatal(err)
+	}
+	out.Reset()
+	if err := runChangelog(cmd, r, "", "older", ""); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(out.String(), "initial commit") || !strings.Contains(out.String(), "older release") || strings.Contains(out.String(), "newer release") {
+		t.Fatalf("incorrect untagged ending-ref history: %s", out.String())
+	}
+}

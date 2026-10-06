@@ -45,9 +45,9 @@ func runChangelog(cmd *cobra.Command, runner gitutil.Runner, from, to, output st
 	includeRoot := false
 	resolvedFrom := from
 	if resolvedFrom == "" {
-		if tag, err := gitutil.LatestTag(runner); err == nil && tag != "" {
+		if tag, err := gitutil.LatestTag(runner, resolvedTo); err == nil && tag != "" {
 			resolvedFrom = tag
-		} else if first, err := gitutil.FirstCommit(runner); err == nil {
+		} else if first, err := gitutil.FirstCommit(runner, resolvedTo); err == nil {
 			resolvedFrom = first
 			includeRoot = true
 		} else {

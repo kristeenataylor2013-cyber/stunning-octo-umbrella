@@ -179,8 +179,8 @@ func TestDeleteBranches_Force(t *testing.T) {
 
 func TestLatestTag(t *testing.T) {
 	r := newFakeRunner()
-	r.outputs["describe --tags --abbrev=0"] = "v1.2.3\n"
-	got, err := LatestTag(r)
+	r.outputs["describe --tags --abbrev=0 HEAD"] = "v1.2.3\n"
+	got, err := LatestTag(r, "HEAD")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -192,7 +192,7 @@ func TestLatestTag(t *testing.T) {
 func TestFirstCommit(t *testing.T) {
 	r := newFakeRunner()
 	r.outputs["rev-list --max-parents=0 HEAD"] = "abc123\n"
-	got, err := FirstCommit(r)
+	got, err := FirstCommit(r, "HEAD")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -204,7 +204,7 @@ func TestFirstCommit(t *testing.T) {
 func TestFirstCommit_NoCommits(t *testing.T) {
 	r := newFakeRunner()
 	r.outputs["rev-list --max-parents=0 HEAD"] = ""
-	_, err := FirstCommit(r)
+	_, err := FirstCommit(r, "HEAD")
 	if err == nil {
 		t.Fatal("expected error for empty output")
 	}

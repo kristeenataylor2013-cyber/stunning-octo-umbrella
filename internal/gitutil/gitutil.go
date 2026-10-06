@@ -120,10 +120,10 @@ func DeleteBranches(r Runner, branches []string, force bool) (deleted []string, 
 	return deleted, errs
 }
 
-// LatestTag returns the most recent reachable tag from HEAD, as reported by
+// LatestTag returns the most recent reachable tag from ref, as reported by
 // `git describe --tags --abbrev=0`.
-func LatestTag(r Runner) (string, error) {
-	out, err := r.Run("describe", "--tags", "--abbrev=0")
+func LatestTag(r Runner, ref string) (string, error) {
+	out, err := r.Run("describe", "--tags", "--abbrev=0", ref)
 	if err != nil {
 		return "", err
 	}
@@ -131,8 +131,8 @@ func LatestTag(r Runner) (string, error) {
 }
 
 // FirstCommit returns the hash of the repository's first (root) commit.
-func FirstCommit(r Runner) (string, error) {
-	out, err := r.Run("rev-list", "--max-parents=0", "HEAD")
+func FirstCommit(r Runner, ref string) (string, error) {
+	out, err := r.Run("rev-list", "--max-parents=0", ref)
 	if err != nil {
 		return "", err
 	}

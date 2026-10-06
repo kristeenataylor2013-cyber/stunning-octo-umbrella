@@ -104,7 +104,7 @@ func TestRunChangelog_DefaultsToFirstCommit(t *testing.T) {
 			"log HEAD --format=%H\x1f%s":    "abc123\x1ffeat: initial commit\n",
 		},
 		errs: map[string]error{
-			"describe --tags --abbrev=0": errors.New("no tags"),
+			"describe --tags --abbrev=0 HEAD": errors.New("no tags"),
 		},
 	}
 

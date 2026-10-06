@@ -64,7 +64,7 @@ Generates a changelog from `git log` between two refs. Commits following the
 list is produced.
 
 ```sh
-# Changelog since the latest tag (or the first commit if there are no tags).
+# Changelog since the latest reachable tag (includes all history if untagged).
 octo changelog
 
 # Changelog for a specific range.
@@ -76,7 +76,7 @@ octo changelog --from v1.0.0 --output CHANGELOG.md
 
 Flags:
 
-- `--from`: starting ref (default: the latest tag, or the first commit).
+- `--from`: starting ref (default: the latest tag reachable from `--to`, or the first commit).
 - `--to`: ending ref (default: `HEAD`).
 - `--output`: write the changelog to this file instead of stdout.
 
