@@ -69,7 +69,7 @@ func runClean(cmd *cobra.Command, runner gitutil.Runner, dryRun bool, force bool
 		return nil
 	}
 
-	if dryRun {
+	if dryRun || !force {
 		fmt.Fprintf(out, "The following branches are merged into %q and would be deleted (dry-run):\n", defaultBranch)
 		for _, b := range filtered {
 			fmt.Fprintf(out, "  - %s\n", b)

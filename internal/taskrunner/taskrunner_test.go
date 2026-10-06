@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 )
 
@@ -151,5 +152,15 @@ func TestShellExecutor_NonZeroExit(t *testing.T) {
 	}
 	if code != 7 {
 		t.Fatalf("code = %d, want 7", code)
+	}
+}
+
+func TestShellExecutor_SignalExit(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("requires POSIX signals")
+	}
+	code, err := (ShellExecutor{}).Run("kill -TERM $$", &bytes.Buffer{}, &bytes.Buffer{})
+	if err != nil || code != 143 {
+		t.Fatalf("signal exit = %d, %v; want 143, nil", code, err)
 	}
 }

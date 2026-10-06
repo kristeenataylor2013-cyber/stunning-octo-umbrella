@@ -80,45 +80,45 @@ func TestDetectDefaultBranch_PrefersOriginHEAD(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if got != "develop" {
-		t.Fatalf("got %q, want %q", got, "develop")
+	if got != "refs/remotes/origin/develop" {
+		t.Fatalf("got %q, want %q", got, "refs/remotes/origin/develop")
 	}
 }
 
 func TestDetectDefaultBranch_FallsBackToMain(t *testing.T) {
 	r := newFakeRunner()
 	r.errs["symbolic-ref refs/remotes/origin/HEAD"] = errors.New("no such ref")
-	r.errs["rev-parse --verify --quiet master"] = errors.New("not found")
+	r.errs["rev-parse --verify --quiet refs/heads/master"] = errors.New("not found")
 	// "main" verify succeeds (no error, empty output is fine).
 
 	got, err := DetectDefaultBranch(r)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if got != "main" {
-		t.Fatalf("got %q, want %q", got, "main")
+	if got != "refs/heads/main" {
+		t.Fatalf("got %q, want %q", got, "refs/heads/main")
 	}
 }
 
 func TestDetectDefaultBranch_FallsBackToMaster(t *testing.T) {
 	r := newFakeRunner()
 	r.errs["symbolic-ref refs/remotes/origin/HEAD"] = errors.New("no such ref")
-	r.errs["rev-parse --verify --quiet main"] = errors.New("not found")
+	r.errs["rev-parse --verify --quiet refs/heads/main"] = errors.New("not found")
 
 	got, err := DetectDefaultBranch(r)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if got != "master" {
-		t.Fatalf("got %q, want %q", got, "master")
+	if got != "refs/heads/master" {
+		t.Fatalf("got %q, want %q", got, "refs/heads/master")
 	}
 }
 
 func TestDetectDefaultBranch_NoneFound(t *testing.T) {
 	r := newFakeRunner()
 	r.errs["symbolic-ref refs/remotes/origin/HEAD"] = errors.New("no such ref")
-	r.errs["rev-parse --verify --quiet main"] = errors.New("not found")
-	r.errs["rev-parse --verify --quiet master"] = errors.New("not found")
+	r.errs["rev-parse --verify --quiet refs/heads/main"] = errors.New("not found")
+	r.errs["rev-parse --verify --quiet refs/heads/master"] = errors.New("not found")
 
 	_, err := DetectDefaultBranch(r)
 	if err == nil {
@@ -128,7 +128,7 @@ func TestDetectDefaultBranch_NoneFound(t *testing.T) {
 
 func TestListMergedBranches(t *testing.T) {
 	r := newFakeRunner()
-	r.outputs["branch --format=%(refname:short) --merged main"] = "main\nfeature/a\nfeature/b\n"
+	r.outputs["branch --format=%(refname:lstrip=2) --merged main"] = "main\nfeature/a\nfeature/b\n"
 
 	got, err := ListMergedBranches(r, "main")
 	if err != nil {
@@ -273,6 +273,37 @@ func TestExecRunner_Integration(t *testing.T) {
 	}
 	if !equalSlices(deleted, []string{"feature/done"}) {
 		t.Fatalf("deleted = %v, want [feature/done]", deleted)
+	}
+
+	// A same-named tag must not replace the local default branch.
+	run("tag", "main", "HEAD~1")
+	ref, err := DetectDefaultBranch(runner)
+	if err != nil || ref != "refs/heads/main" {
+		t.Fatalf("default with colliding tag = %q, %v", ref, err)
+	}
+	run("branch", "feature/done", "HEAD")
+	branches, err = ListMergedBranches(runner, ref)
+	if err != nil || !equalSlices(branches, []string{"feature/done"}) {
+		t.Fatalf("merged branches with colliding tag = %v, %v", branches, err)
+	}
+
+	// origin/HEAD remains usable even without its corresponding local branch.
+	run("update-ref", "refs/remotes/origin/develop", "refs/heads/main")
+	run("symbolic-ref", "refs/remotes/origin/HEAD", "refs/remotes/origin/develop")
+	run("checkout", "feature/unmerged")
+	run("branch", "-D", "main")
+	ref, err = DetectDefaultBranch(runner)
+	if err != nil || ref != "refs/remotes/origin/develop" {
+		t.Fatalf("remote default = %q, %v", ref, err)
+	}
+	branches, err = ListMergedBranches(runner, ref)
+	if err != nil || !equalSlices(branches, []string{"feature/done"}) {
+		t.Fatalf("remote merged branches = %v, %v", branches, err)
+	}
+	run("branch", "develop", "refs/remotes/origin/develop")
+	branches, err = ListMergedBranches(runner, ref)
+	if err != nil || !equalSlices(branches, []string{"feature/done"}) {
+		t.Fatalf("default branch must be protected: %v, %v", branches, err)
 	}
 }
 

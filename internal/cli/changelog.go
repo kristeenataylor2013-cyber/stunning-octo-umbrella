@@ -42,18 +42,23 @@ func runChangelog(cmd *cobra.Command, runner gitutil.Runner, from, to, output st
 		resolvedTo = "HEAD"
 	}
 
+	includeRoot := false
 	resolvedFrom := from
 	if resolvedFrom == "" {
 		if tag, err := gitutil.LatestTag(runner); err == nil && tag != "" {
 			resolvedFrom = tag
 		} else if first, err := gitutil.FirstCommit(runner); err == nil {
 			resolvedFrom = first
+			includeRoot = true
 		} else {
 			return fmt.Errorf("could not determine a starting ref: %w", err)
 		}
 	}
 
 	rangeArg := fmt.Sprintf("%s..%s", resolvedFrom, resolvedTo)
+	if includeRoot {
+		rangeArg = resolvedTo
+	}
 	out, err := runner.Run("log", rangeArg, "--format="+changelog.LogFormat)
 	if err != nil {
 		return fmt.Errorf("git log failed: %w", err)

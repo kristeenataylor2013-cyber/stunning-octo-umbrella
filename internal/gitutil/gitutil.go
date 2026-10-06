@@ -56,12 +56,11 @@ func CurrentBranch(r Runner) (string, error) {
 func DetectDefaultBranch(r Runner) (string, error) {
 	if out, err := r.Run("symbolic-ref", "refs/remotes/origin/HEAD"); err == nil {
 		name := strings.TrimSpace(out)
-		name = strings.TrimPrefix(name, "refs/remotes/origin/")
 		if name != "" {
 			return name, nil
 		}
 	}
-	for _, candidate := range []string{"main", "master"} {
+	for _, candidate := range []string{"refs/heads/main", "refs/heads/master"} {
 		if _, err := r.Run("rev-parse", "--verify", "--quiet", candidate); err == nil {
 			return candidate, nil
 		}
@@ -70,15 +69,15 @@ func DetectDefaultBranch(r Runner) (string, error) {
 }
 
 // ParseMergedBranches parses the newline-separated output of
-// `git branch --format=%(refname:short) --merged <defaultBranch>` and
+// `git branch --format=%(refname:lstrip=2) --merged <defaultBranch>` and
 // returns the branch names, excluding the default branch itself and any
 // blank lines. It is a pure function so it can be tested without a real
 // git repository.
 func ParseMergedBranches(output, defaultBranch string) []string {
 	skip := map[string]bool{
-		defaultBranch: true,
-		"main":        true,
-		"master":      true,
+		strings.TrimPrefix(strings.TrimPrefix(defaultBranch, "refs/heads/"), "refs/remotes/origin/"): true,
+		"main":   true,
+		"master": true,
 	}
 	var result []string
 	for _, line := range strings.Split(output, "\n") {
@@ -96,7 +95,7 @@ func ParseMergedBranches(output, defaultBranch string) []string {
 // ListMergedBranches runs `git branch --merged` against defaultBranch and
 // returns the parsed branch names.
 func ListMergedBranches(r Runner, defaultBranch string) ([]string, error) {
-	out, err := r.Run("branch", "--format=%(refname:short)", "--merged", defaultBranch)
+	out, err := r.Run("branch", "--format=%(refname:lstrip=2)", "--merged", defaultBranch)
 	if err != nil {
 		return nil, err
 	}

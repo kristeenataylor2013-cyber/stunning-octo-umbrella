@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"sort"
+	"syscall"
 
 	"gopkg.in/yaml.v3"
 )
@@ -82,7 +83,13 @@ func (ShellExecutor) Run(command string, stdout, stderr io.Writer) (int, error) 
 	}
 	var exitErr *exec.ExitError
 	if errors.As(err, &exitErr) {
-		return exitErr.ExitCode(), nil
+		if status, ok := exitErr.Sys().(syscall.WaitStatus); ok && status.Signaled() {
+			return 128 + int(status.Signal()), nil
+		}
+		if code := exitErr.ExitCode(); code >= 0 {
+			return code, nil
+		}
+		return 1, err
 	}
 	return -1, err
 }
