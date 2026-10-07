@@ -1,0 +1,10 @@
+[project]
+name = "client-docs-agent"
+version = "0.1.0"
+requires-python = ">=3.10"
+dependencies = ["playwright>=1.40"]
+[project.optional-dependencies]
+keyring = ["keyring"]
+test = ["pytest"]
+[tool.setuptools]
+packages = ["client_docs_agent"]
