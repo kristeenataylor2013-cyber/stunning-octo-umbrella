@@ -239,7 +239,7 @@ def test_interactive_login_installs_guard_before_page(cfg, monkeypatch):
     monkeypatch.setattr('builtins.input', lambda prompt: '')
     agent.login_interactive(cfg)
     assert events[:3] == ['guard', 'page', 'goto']
-    browser.new_context.assert_called_once_with(service_workers='block')
+    browser.new_context.assert_called_once_with(service_workers='block', accept_downloads=False)
     assert cfg.session_state.exists()
     browser.close.assert_called_once()
 

@@ -139,7 +139,7 @@ def login_interactive(cfg: Config) -> None:
     from playwright.sync_api import sync_playwright
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=False)
-        context = browser.new_context(service_workers="block")
+        context = browser.new_context(service_workers="block", accept_downloads=False)
         _guard(context, cfg)
         page = context.new_page()
         page.goto(cfg.base_url + cfg.login_path)
