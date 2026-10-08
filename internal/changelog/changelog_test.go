@@ -156,3 +156,24 @@ func TestParseGitLogOutput(t *testing.T) {
 		}
 	}
 }
+
+func TestRenderStripsTerminalControls(t *testing.T) {
+	for _, subject := range []string{
+		"plain \x1b]52;c;payload\a text\r\b\x7f\u009b31m café",
+		"feat(scope\x1b[31m): useful \x1b]8;;https://example.com\a link\u009c",
+	} {
+		commits := []Commit{{Hash: "abcdef123", Subject: subject}}
+		got := Render(commits, "base", "HEAD")
+		for _, r := range got {
+			if r != '\n' && (r < 32 || (r >= 127 && r <= 159)) {
+				t.Fatalf("control %U in rendered output %q", r, got)
+			}
+		}
+		if commits[0].Subject != subject {
+			t.Fatal("Render modified input")
+		}
+		if !strings.Contains(got, "café") && strings.HasPrefix(subject, "plain") {
+			t.Fatal("lost Unicode text")
+		}
+	}
+}

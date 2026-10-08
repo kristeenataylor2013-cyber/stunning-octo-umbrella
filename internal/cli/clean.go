@@ -51,14 +51,14 @@ func runClean(cmd *cobra.Command, runner gitutil.Runner, dryRun bool, force bool
 		return err
 	}
 
-	branches, err := gitutil.ListMergedBranches(runner, defaultBranch)
+	branches, err := gitutil.ListMergedBranchTips(runner, defaultBranch)
 	if err != nil {
 		return err
 	}
 
 	filtered := branches[:0:0]
 	for _, b := range branches {
-		if b == current {
+		if b.Name == current {
 			continue
 		}
 		filtered = append(filtered, b)
@@ -72,13 +72,13 @@ func runClean(cmd *cobra.Command, runner gitutil.Runner, dryRun bool, force bool
 	if dryRun || !force {
 		fmt.Fprintf(out, "The following branches are merged into %q and would be deleted (dry-run):\n", defaultBranch)
 		for _, b := range filtered {
-			fmt.Fprintf(out, "  - %s\n", b)
+			fmt.Fprintf(out, "  - %s\n", b.Name)
 		}
 		fmt.Fprintln(out, "Re-run with --force to delete them.")
 		return nil
 	}
 
-	deleted, errs := gitutil.DeleteBranches(runner, filtered, force)
+	deleted, errs := gitutil.DeleteMergedBranches(runner, filtered)
 	for _, b := range deleted {
 		fmt.Fprintf(out, "Deleted %s\n", b)
 	}

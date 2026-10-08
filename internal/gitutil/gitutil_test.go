@@ -142,7 +142,7 @@ func TestListMergedBranches(t *testing.T) {
 
 func TestDeleteBranches(t *testing.T) {
 	r := newFakeRunner()
-	r.errs["branch -d bad-branch"] = errors.New("not fully merged")
+	r.errs["branch -d -- bad-branch"] = errors.New("not fully merged")
 
 	deleted, errs := DeleteBranches(r, []string{"good-branch", "bad-branch"}, false)
 
@@ -168,7 +168,7 @@ func TestDeleteBranches_Force(t *testing.T) {
 	_, _ = DeleteBranches(r, []string{"b1"}, true)
 	found := false
 	for _, call := range r.calls {
-		if len(call) == 3 && call[0] == "branch" && call[1] == "-D" && call[2] == "b1" {
+		if len(call) == 4 && call[0] == "branch" && call[1] == "-D" && call[2] == "--" && call[3] == "b1" {
 			found = true
 		}
 	}

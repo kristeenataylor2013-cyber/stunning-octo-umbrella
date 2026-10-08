@@ -32,10 +32,10 @@ func newCmdWithBuffers() (*cobra.Command, *bytes.Buffer, *bytes.Buffer) {
 func TestRunClean_DryRunByDefault(t *testing.T) {
 	r := &fakeRunner{
 		outputs: map[string]string{
-			"symbolic-ref refs/remotes/origin/HEAD":                        "",
-			"rev-parse --verify --quiet refs/heads/main":                   "",
-			"rev-parse --abbrev-ref HEAD":                                  "main",
-			"branch --format=%(refname:lstrip=2) --merged refs/heads/main": "main\nfeature/old\n",
+			"symbolic-ref refs/remotes/origin/HEAD":      "",
+			"rev-parse --verify --quiet refs/heads/main": "",
+			"rev-parse --abbrev-ref HEAD":                "main",
+			"for-each-ref --format=%(refname:lstrip=2)%09%(objectname)%09%(worktreepath) --merged=refs/heads/main refs/heads/": "main\tabc123\t/worktree\nfeature/old\tabc123\t\n",
 		},
 		errs: map[string]error{
 			"symbolic-ref refs/remotes/origin/HEAD": errors.New("no remote"),
@@ -57,9 +57,9 @@ func TestRunClean_DryRunByDefault(t *testing.T) {
 func TestRunClean_NothingToClean(t *testing.T) {
 	r := &fakeRunner{
 		outputs: map[string]string{
-			"rev-parse --verify --quiet refs/heads/main":                   "",
-			"rev-parse --abbrev-ref HEAD":                                  "main",
-			"branch --format=%(refname:lstrip=2) --merged refs/heads/main": "main\n",
+			"rev-parse --verify --quiet refs/heads/main": "",
+			"rev-parse --abbrev-ref HEAD":                "main",
+			"for-each-ref --format=%(refname:lstrip=2)%09%(objectname)%09%(worktreepath) --merged=refs/heads/main refs/heads/": "main\tabc123\t/worktree\n",
 		},
 		errs: map[string]error{
 			"symbolic-ref refs/remotes/origin/HEAD": errors.New("no remote"),
@@ -78,10 +78,10 @@ func TestRunClean_NothingToClean(t *testing.T) {
 func TestRunClean_ForceDeletes(t *testing.T) {
 	r := &fakeRunner{
 		outputs: map[string]string{
-			"rev-parse --verify --quiet refs/heads/main":                   "",
-			"rev-parse --abbrev-ref HEAD":                                  "main",
-			"branch --format=%(refname:lstrip=2) --merged refs/heads/main": "main\nfeature/old\n",
-			"branch -D feature/old":                                        "",
+			"rev-parse --verify --quiet refs/heads/main": "",
+			"rev-parse --abbrev-ref HEAD":                "main",
+			"for-each-ref --format=%(refname:lstrip=2)%09%(objectname)%09%(worktreepath) --merged=refs/heads/main refs/heads/": "main\tabc123\t/worktree\nfeature/old\tabc123\t\n",
+			"update-ref --no-deref -d -- refs/heads/feature/old abc123":                                                        "",
 		},
 		errs: map[string]error{
 			"symbolic-ref refs/remotes/origin/HEAD": errors.New("no remote"),

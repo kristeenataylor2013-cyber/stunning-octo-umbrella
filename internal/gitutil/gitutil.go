@@ -102,6 +102,62 @@ func ListMergedBranches(r Runner, defaultBranch string) ([]string, error) {
 	return ParseMergedBranches(out, defaultBranch), nil
 }
 
+// MergedBranch records the exact tip inspected by the merged-branch query.
+type MergedBranch struct {
+	Name string
+	OID  string
+}
+
+// ListMergedBranchTips snapshots names and OIDs in the same merged query.
+// Branches checked out in any worktree are excluded.
+func ListMergedBranchTips(r Runner, defaultBranch string) ([]MergedBranch, error) {
+	out, err := r.Run("for-each-ref", "--format=%(refname:lstrip=2)%09%(objectname)%09%(worktreepath)", "--merged="+defaultBranch, "refs/heads/")
+	if err != nil {
+		return nil, err
+	}
+	var branches []MergedBranch
+	for _, line := range strings.Split(out, "\n") {
+		if line == "" {
+			continue
+		}
+		fields := strings.SplitN(line, "\t", 3)
+		if len(fields) != 3 || fields[1] == "" {
+			return nil, fmt.Errorf("invalid merged branch record: %q", line)
+		}
+		if fields[2] != "" || len(ParseMergedBranches(fields[0], defaultBranch)) == 0 {
+			continue
+		}
+		branches = append(branches, MergedBranch{Name: fields[0], OID: fields[1]})
+	}
+	return branches, nil
+}
+
+// DeleteMergedBranches atomically deletes only the tips checked as merged.
+// An expected-old-value mismatch leaves the branch intact. Full refs and an
+// option terminator also support names starting with a dash.
+func DeleteMergedBranches(r Runner, branches []MergedBranch) (deleted []string, errs []error) {
+	for _, b := range branches {
+		ref := "refs/heads/" + b.Name
+		// update-ref lacks branch's worktree guard; preserve that protection.
+		path, err := r.Run("for-each-ref", "--format=%(worktreepath)", "--", ref)
+		if err == nil && strings.TrimSpace(path) != "" {
+			err = errors.New("branch is checked out in a worktree")
+		}
+		if err == nil && b.OID == "" {
+			err = errors.New("missing verified branch tip")
+		}
+		if err == nil {
+			_, err = r.Run("update-ref", "--no-deref", "-d", "--", ref, b.OID)
+		}
+		if err != nil {
+			errs = append(errs, fmt.Errorf("%s: %w", b.Name, err))
+			continue
+		}
+		deleted = append(deleted, b.Name)
+	}
+	return deleted, errs
+}
+
 // DeleteBranches deletes each of the given local branches using `git branch
 // -d` (or `-D` when force is true). It returns the branches that were
 // successfully deleted and any per-branch errors encountered.
@@ -111,7 +167,7 @@ func DeleteBranches(r Runner, branches []string, force bool) (deleted []string, 
 		flag = "-D"
 	}
 	for _, b := range branches {
-		if _, err := r.Run("branch", flag, b); err != nil {
+		if _, err := r.Run("branch", flag, "--", b); err != nil {
 			errs = append(errs, fmt.Errorf("%s: %w", b, err))
 			continue
 		}

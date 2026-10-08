@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"unicode"
 )
 
 // Commit is a single git log entry.
@@ -132,6 +133,19 @@ func shortHash(h string) string {
 // Render produces a markdown changelog for the given commits, covering the
 // range from..to.
 func Render(commits []Commit, from, to string) string {
+	// Sanitize before parsing so both flat subjects and conventional scopes and
+	// descriptions are safe. Copy to leave the caller's commits unchanged.
+	safe := make([]Commit, len(commits))
+	for i, c := range commits {
+		c.Subject = strings.Map(func(r rune) rune {
+			if unicode.IsControl(r) {
+				return -1
+			}
+			return r
+		}, c.Subject)
+		safe[i] = c
+	}
+	commits = safe
 	var sb strings.Builder
 	fmt.Fprintf(&sb, "# Changelog (%s..%s)\n\n", from, to)
 

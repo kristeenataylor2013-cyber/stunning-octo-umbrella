@@ -135,3 +135,101 @@ func TestChangelogDefaultsUseEndingRef(t *testing.T) {
 		t.Fatalf("incorrect untagged ending-ref history: %s", out.String())
 	}
 }
+
+// advancingRunner deterministically advances a branch between the merged query
+// and deletion, including the last moment before the atomic update-ref.
+type advancingRunner struct {
+	gitutil.ExecRunner
+	trigger  string
+	name     string
+	tip      string
+	advanced bool
+}
+
+func (r *advancingRunner) Run(args ...string) (string, error) {
+	if !r.advanced && args[0] == r.trigger {
+		r.advanced = true
+		if _, err := r.ExecRunner.Run("update-ref", "refs/heads/"+r.name, r.tip); err != nil {
+			return "", err
+		}
+	}
+	return r.ExecRunner.Run(args...)
+}
+
+func TestCleanPreservesAdvancedBranch(t *testing.T) {
+	for _, trigger := range []string{"update-ref"} {
+		t.Run(trigger, func(t *testing.T) {
+			r := testRepo(t)
+			for _, args := range [][]string{
+				{"branch", "victim"},
+				{"checkout", "-b", "unmerged"},
+				{"commit", "--allow-empty", "-m", "feat: unmerged work"},
+				{"checkout", "main"},
+			} {
+				if _, err := r.Run(args...); err != nil {
+					t.Fatal(err)
+				}
+			}
+			tip, err := r.Run("rev-parse", "refs/heads/unmerged")
+			if err != nil {
+				t.Fatal(err)
+			}
+			advancing := &advancingRunner{ExecRunner: r, trigger: trigger, name: "victim", tip: strings.TrimSpace(tip)}
+			cmd, _, _ := newCmdWithBuffers()
+			if err := runClean(cmd, advancing, false, true); err == nil {
+				t.Fatal("expected changed-tip deletion error")
+			}
+			got, err := r.Run("rev-parse", "refs/heads/victim")
+			if err != nil || got != tip {
+				t.Fatalf("advanced branch lost: %q, %v", got, err)
+			}
+		})
+	}
+}
+
+func TestCleanDashBranchAndWorktree(t *testing.T) {
+	r := testRepo(t)
+	for _, args := range [][]string{
+		{"update-ref", "refs/heads/-victim", "HEAD"},
+		{"branch", "occupied"},
+		{"worktree", "add", t.TempDir(), "occupied"},
+	} {
+		if _, err := r.Run(args...); err != nil {
+			t.Fatal(err)
+		}
+	}
+	cmd, out, _ := newCmdWithBuffers()
+	if err := runClean(cmd, r, false, true); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(out.String(), "Deleted -victim") {
+		t.Fatalf("dash branch not deleted: %s", out.String())
+	}
+	if _, err := r.Run("rev-parse", "--verify", "refs/heads/-victim"); err == nil {
+		t.Fatal("dash branch survived")
+	}
+	if _, err := r.Run("rev-parse", "--verify", "refs/heads/occupied"); err != nil {
+		t.Fatal("worktree branch deleted")
+	}
+}
+
+func TestCleanPreservesNewlyOccupiedBranch(t *testing.T) {
+	r := testRepo(t)
+	if _, err := r.Run("branch", "occupied"); err != nil {
+		t.Fatal(err)
+	}
+	candidates, err := gitutil.ListMergedBranchTips(r, "refs/heads/main")
+	if err != nil || len(candidates) != 1 {
+		t.Fatalf("candidates: %v, %v", candidates, err)
+	}
+	if _, err := r.Run("worktree", "add", t.TempDir(), "occupied"); err != nil {
+		t.Fatal(err)
+	}
+	deleted, errs := gitutil.DeleteMergedBranches(r, candidates)
+	if len(deleted) != 0 || len(errs) != 1 {
+		t.Fatalf("occupied branch: deleted %v, errors %v", deleted, errs)
+	}
+	if _, err := r.Run("rev-parse", "--verify", "refs/heads/occupied"); err != nil {
+		t.Fatal("worktree branch deleted")
+	}
+}
