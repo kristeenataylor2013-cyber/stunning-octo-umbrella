@@ -11,10 +11,13 @@ def main() -> None:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
     from . import agent
     cfg = Config.from_env()
-    if args.command == "run":
-        agent.run(cfg)
-    else:
-        agent.login_interactive(cfg)
+    try:
+        if args.command == "run":
+            agent.run(cfg)
+        else:
+            agent.login_interactive(cfg)
+    except agent.IncompleteRun as exc:
+        raise SystemExit(str(exc)) from None
 
 
 if __name__ == "__main__":

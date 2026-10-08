@@ -43,7 +43,7 @@ Credentials: `SITE_USERNAME`/`SITE_PASSWORD` env vars or the OS keyring (service
 ### Use
 
 ```
-python -m client_docs_agent login-interactive   # once, if the site uses MFA/SSO/CAPTCHA
+python -m client_docs_agent login-interactive   # same-origin login without HTTP redirects
 python -m client_docs_agent run                 # re-runs only fetch new documents
 ```
 
@@ -51,8 +51,10 @@ Output: `OUTPUT_DIR/<NNNN_client>/<file>` (dirs 0700, files 0600) plus `.manifes
 
 ### Security
 
-- Requests to any other origin are blocked; URLs are checked against the base origin.
-- Filenames are sanitised; OUTPUT_DIR must be outside the repo.
+- Browser HTTP(S) requests are guarded at context level before either login flow creates a page, including popup requests. Service workers and automatic browser downloads are disabled.
+- Browser HTTP redirects are refused, including same-origin redirects: Playwright routing does not guard every redirect hop. Redirect-based login/SSO is therefore unsupported in this draft. Browser responses are fetched with automatic redirects disabled and fulfilled only when they are not redirects.
+- API document downloads check the initial URL and every redirect destination before issuing the next request. Only the configured scheme, host and port are allowed; credentials embedded in URLs are rejected. Redirect cycles and excessive chains fail.
+- Filenames are sanitised; OUTPUT_DIR and SESSION_STATE must be outside the repo. Session paths are resolved before loading or saving, including symlink targets. Saved session files use mode 0600.
 - Logs contain no credentials or client names. For scheduled runs use a self-hosted runner/cron, not public CI artifacts. Use an encrypted volume for at-rest encryption.
 - Only use on accounts/data you are authorised to access.
 
@@ -60,6 +62,10 @@ Tests: `pytest`
 
 ### Review limitations
 
-This recovered implementation has not been tested against a live portal. Configure and verify the URL and selectors before use. The page request guard does not cover API download redirects or the interactive login browser, so the origin-blocking claim above is not yet a verified security guarantee. Session paths also need review to prevent saving authentication state inside the repository. Do not use live client data until these gaps are addressed.
+This draft has not been tested against a live portal. URL and selector configuration remains a placeholder. Login flow tests use synthetic browser doubles; transport tests use real Playwright API requests against loopback servers with synthetic cookies and documents. They do not establish live browser or portal compatibility. Do not use live client data until the draft has been reviewed and the portal-specific behaviour verified.
 
-Python CI runs the existing offline tests on Python 3.10 and 3.13. It does not log in or download client documents.
+Discovery uses URL plus displayed client links so pagination can progress without changing the URL. It waits for link changes using CSS selectors. An absent, hidden or disabled next control ends discovery; a repeated page, stalled update or the 1,000-page limit fails rather than returning a partial list. Configure selectors to match the portal's terminal page reliably.
+
+Any failed or blocked document download makes the command exit unsuccessfully after preserving successful files and manifest entries for retry. A successful exit means all discovered documents were downloaded or already present, not that every document in a live portal was discovered.
+
+Python CI runs the synthetic tests on Python 3.10 and 3.13. It does not log in or download client documents.
