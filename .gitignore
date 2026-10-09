@@ -1,2 +1,12 @@
 node_modules/
 dist/
+.env
+*.pyc
+__pycache__/
+.pytest_cache/
+state.json
+downloads/
+session.json
+*.egg-info/
+.venv/
+build/

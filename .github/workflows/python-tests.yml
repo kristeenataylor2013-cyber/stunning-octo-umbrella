@@ -1,0 +1,50 @@
+name: Python agent tests
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.13"]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install package and tests
+        run: python -m pip install -e ".[test]"
+      - name: Check syntax
+        run: python -m compileall -q client_docs_agent tests
+      - name: Run offline tests
+        run: python -m pytest -q
+
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      RUN_BROWSER_TESTS: "1"
+      RUN_HEADED_BROWSER_TESTS: "1"
+      PLAYWRIGHT_BROWSERS_PATH: /tmp/ccml-synthetic-chromium
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install reproducible browser test dependencies
+        run: python -m pip install -e ".[test]" playwright==1.63.0
+      - name: Install Chromium system dependencies
+        run: python -m playwright install-deps chromium
+      - name: Install exact Chromium from official Chrome for Testing bucket
+        run: python scripts/install_synthetic_chromium.py
+      - name: Run real headless and headed browser checks with synthetic data
+        run: xvfb-run -a python -m pytest -q tests/test_browser.py
