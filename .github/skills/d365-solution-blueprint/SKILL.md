@@ -46,29 +46,19 @@ If the user resumes without the working blueprint and no persistent workspace co
 
 Read `references/section-guide.md` for the per-section question sets, option sets, and trade-offs. Load only the sections you are working on.
 
-**Track A - Foundation** *(must be completed first)*
+**Track A - Foundation** _(must be completed first)_
+
 1. Programme context and business case
 2. Scope - apps, modules, legal entities, geographies, phasing
 3. Target operating model and process architecture
 
-**Track B - Solution**
-4. Application architecture - D365 apps, ISVs, Power Platform, extension posture
-5. Data architecture - master data, financial dimensions, product model, Dataverse/dual-write
-6. Integration architecture - middleware strategy, interface landscape, failure principles
+**Track B - Solution** 4. Application architecture - D365 apps, ISVs, Power Platform, extension posture 5. Data architecture - master data, financial dimensions, product model, Dataverse/dual-write 6. Integration architecture - middleware strategy, interface landscape, failure principles
 
-**Track C - Data and control**
-7. Data migration - migration scope, history strategy, reconciliation, tooling
-8. Security, compliance, and licensing - role families, SoD, XDS need, licensing shape
+**Track C - Data and control** 7. Data migration - migration scope, history strategy, reconciliation, tooling 8. Security, compliance, and licensing - role families, SoD, XDS need, licensing shape
 
-**Track D - Platform**
-9. Environment strategy and ALM
-10. Reporting and analytics architecture
-11. Performance, scale, and volumetrics
+**Track D - Platform** 9. Environment strategy and ALM 10. Reporting and analytics architecture 11. Performance, scale, and volumetrics
 
-**Track E - Delivery**
-12. Test strategy
-13. Deployment and cutover approach
-14. Support and operating model
+**Track E - Delivery** 12. Test strategy 13. Deployment and cutover approach 14. Support and operating model
 
 Track A first is not a stylistic preference. Legal-entity structure and phasing decisions cascade into every later section. Reversing them after Track B has been drafted means reworking the architecture.
 
@@ -87,14 +77,14 @@ The skill must remain fully usable on its own.
 
 Eight decisions are effectively irreversible, or reversible only at significant cost. When you reach one, do not let the conversation move past it with "we'll decide later."
 
-1. **Legal entity structure** *(section 2)* - how many, and what sits in each
-2. **Chart of accounts and financial dimension design** *(section 5)* - dimension count, mandatory dimensions, and reporting cardinality
-3. **Single vs multiple production instances** *(section 4)*
-4. **Deployment phasing** *(section 2, reconfirmed in section 13)* - big bang, geography, module, legal entity, or pilot rollout
-5. **Product and inventory dimension model** *(section 5)* - storage and tracking dimensions, batch/serial, variant strategy
-6. **Dual-write and Power Platform scope** *(sections 4 and 5)* - which entities, which direction, and failure behaviour
-7. **Extension posture** *(section 4)* - the standard-first threshold and who can approve a gap
-8. **Historical data treatment** *(section 7)* - migrate, legacy read-only, or separate archive/data store
+1. **Legal entity structure** _(section 2)_ - how many, and what sits in each
+2. **Chart of accounts and financial dimension design** _(section 5)_ - dimension count, mandatory dimensions, and reporting cardinality
+3. **Single vs multiple production instances** _(section 4)_
+4. **Deployment phasing** _(section 2, reconfirmed in section 13)_ - big bang, geography, module, legal entity, or pilot rollout
+5. **Product and inventory dimension model** _(section 5)_ - storage and tracking dimensions, batch/serial, variant strategy
+6. **Dual-write and Power Platform scope** _(sections 4 and 5)_ - which entities, which direction, and failure behaviour
+7. **Extension posture** _(section 4)_ - the standard-first threshold and who can approve a gap
+8. **Historical data treatment** _(section 7)_ - migrate, legacy read-only, or separate archive/data store
 
 Each carries a `⚑` marker in `references/section-guide.md` and `assets/blueprint-template.md`.
 
@@ -110,14 +100,14 @@ For example: `Sections 5 and 7 are drafted on the assumption of X. If X changes,
 
 Every entry in the decision log carries all six fields:
 
-| Field | Why it matters |
-|---|---|
-| Decision | What was decided, unambiguously |
-| Rationale | Why the decision was made |
-| Alternatives rejected | What else was considered and why it lost |
-| Implications | What the decision now constrains downstream |
-| Decided by | A named person, not "the project" |
-| Date | When the decision was made |
+| Field                 | Why it matters                              |
+| --------------------- | ------------------------------------------- |
+| Decision              | What was decided, unambiguously             |
+| Rationale             | Why the decision was made                   |
+| Alternatives rejected | What else was considered and why it lost    |
+| Implications          | What the decision now constrains downstream |
+| Decided by            | A named person, not "the project"           |
+| Date                  | When the decision was made                  |
 
 Classify every material statement in the blueprint as exactly one of:
 
